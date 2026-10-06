@@ -428,12 +428,64 @@ test("bring-to-main scope menu offers the approved choices and selects a questio
       "From a question onward…  Choose a starting question",
       "Select exact text…  Lines or characters",
       "Entire side thread  2 Q&A · ~3 tokens",
+      "Nothing  Close /btw and bring nothing back",
       "Cancel  Return to the side thread",
     ],
   });
   assert.equal(result.kind, "bringToMain");
   assert.doesNotMatch(result.kind === "bringToMain" ? result.draft : "", /Q1|A1/);
   assert.match(result.kind === "bringToMain" ? result.draft : "", /Q2[\s\S]*A2/);
+});
+
+test("bring-to-main scope menu offers Nothing and closes without bringing context back", async () => {
+  const thread = createSideThread("context");
+  thread.turns.push({ kind: "answered", question: "Q1", answer: "A1", response: response("A1") });
+
+  const result = await chooseBringToMain(thread, { ui: {} } as never, {
+    showMenu: async (_ctx, title, options) => {
+      if (title !== "Bring what back to the main thread?") return { kind: "back" };
+      const value = options.find((option) => option.startsWith("Nothing"));
+      return value ? { kind: "select", value } : { kind: "back" };
+    },
+    showPreview: async () => ({ kind: "bring" }),
+  });
+
+  assert.deepEqual(result, { kind: "nothing" });
+});
+
+test("nothing bring-to-main choice closes the thread and reports that nothing was brought back", async () => {
+  const notifications: string[] = [];
+  const ctx = {
+    ui: { notify: (message: string) => notifications.push(message) },
+    sessionManager: { getBranch: () => [] },
+  } as never;
+  const result = await runBtwThread({
+    initialQuestion: "Q1",
+    selected: {
+      model: { provider: "test", id: "side" } as Model<Api>,
+      auth: { apiKey: "key" },
+    },
+    thinkingLevel: "off",
+    ctx,
+    dependencies: {
+      ask: async (thread) => {
+        const assistant = response("A1");
+        thread.turns.push({ kind: "answered", question: "Q1", answer: "A1", response: assistant });
+        return { kind: "answered", response: assistant, answer: "A1" };
+      },
+      interact: async (_thread, _atBottom, _ctx, draft) => {
+        if (draft === undefined) return { kind: "bringToMain", questionDraft: "" };
+        return { kind: "close" };
+      },
+      chooseBringToMain: async () => ({ kind: "nothing" }),
+      deliverBringToMain: async () => {
+        throw new Error("nothing must not be delivered to the main editor");
+      },
+    },
+  });
+
+  assert.deepEqual(result, { kind: "closed" });
+  assert.deepEqual(notifications, ["Closed /btw; nothing was brought to the main conversation."]);
 });
 
 test("question-suffix preview returns to the previously selected question", async () => {

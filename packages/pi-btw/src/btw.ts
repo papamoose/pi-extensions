@@ -393,7 +393,13 @@ type BtwBringToMainChoice =
       summary: BtwBringToMainSummary;
       selectionState?: BtwTextRangeSelectorState;
     }
+  | { kind: "nothing" }
   | { kind: "back" };
+
+type BtwTextRangeSelectionResult =
+  | { kind: "back" }
+  | BtwThreadResult
+  | { kind: "bringToMain"; draft: string; summary: BtwBringToMainSummary; selectionState: BtwTextRangeSelectorState };
 
 type BtwBringToMainDelivery = "loaded" | "back" | "closed";
 
@@ -466,6 +472,10 @@ export async function runBtwThread({
         if (action.kind === "bringToMain") {
           const choice = await chooseBringToMainAction(thread, ctx);
           if (choice.kind === "closed") return choice;
+          if (choice.kind === "nothing") {
+            notifySafely(ctx, "Closed /btw; nothing was brought to the main conversation.", "info");
+            return { kind: "closed" };
+          }
           if (choice.kind === "back") {
             composerDraft = action.questionDraft;
             continue;
@@ -533,6 +543,7 @@ export async function chooseBringToMain(
   const fromOption = "From a question onward…  Choose a starting question";
   const exactOption = "Select exact text…  Lines or characters";
   const entireOption = `Entire side thread  ${answered.length} Q&A · ~${estimateBringToMainTokens(entireSegments)} tokens`;
+  const nothingOption = "Nothing  Close /btw and bring nothing back";
   const cancelOption = "Cancel  Return to the side thread";
   let selectedScope: string | undefined;
 
@@ -540,7 +551,7 @@ export async function chooseBringToMain(
     const scopeResult = await showMenu(
       ctx,
       "Bring what back to the main thread?",
-      [latestOption, fromOption, exactOption, entireOption, cancelOption],
+      [latestOption, fromOption, exactOption, entireOption, nothingOption, cancelOption],
       selectedScope,
     );
     if (scopeResult.kind === "close") return { kind: "closed" };
@@ -548,6 +559,7 @@ export async function chooseBringToMain(
     const scope = scopeResult.value;
     selectedScope = scope;
     if (scope === latestOption) return makeChoice(latestSegments);
+    if (scope === nothingOption) return { kind: "nothing" };
     if (scope === entireOption) {
       const choice = makeChoice(entireSegments);
       const preview = await showPreview(ctx, choice.draft, choice.summary);
@@ -579,7 +591,7 @@ export async function chooseBringToMain(
     if (scope !== exactOption) continue;
     let selectionState: BtwTextRangeSelectorState | undefined;
     while (true) {
-      const selectedRange = await showBtwCustomPreservingEditor<BtwBringToMainChoice>(
+      const selectedRange = await showBtwCustomPreservingEditor<BtwTextRangeSelectionResult>(
         ctx,
         (tui, theme, keybindings, done) => {
           let selector: BtwTextRangeSelector;

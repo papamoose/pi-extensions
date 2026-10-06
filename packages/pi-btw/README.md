@@ -13,7 +13,7 @@ Only context you explicitly bring back is loaded into the main editor.
 - Offers fullscreen, side-thread-left, and side-thread-right workspaces with Pi's live main-thread view, click-to-focus input, and a draggable remembered divider.
 - Renders supported Mermaid fences as width-safe, themed Unicode diagrams without a browser or network request.
 - Keeps side questions and answers out of the main conversation by default.
-- Brings back the latest answer, a question suffix, an exact range, or the complete thread only when requested.
+- Brings back the latest answer, a question suffix, an exact range, or the complete thread only when requested, or closes the side thread with nothing brought back.
 - Uses Pi's current model and thinking level or saved pi-btw choices.
 - Offers BTW-only exit, thinking-cycle, and bring-to-main keybindings.
 

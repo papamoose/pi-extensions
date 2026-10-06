@@ -61,7 +61,7 @@ Completed questions, answers, and visible errors remain resumable until the exte
 
 ## Bring context to the main editor
 
-After a successful answer, use the bring-to-main shortcut (`Ctrl+R` by default) to choose the latest question and answer, everything from one question onward, an exact range, or the full thread.
+After a successful answer, use the bring-to-main shortcut (`Ctrl+R` by default) to choose the latest question and answer, everything from one question onward, an exact range, the full thread, or nothing. Choosing **Nothing** closes the side thread without bringing anything to the main editor or conversation.
 The scope chooser reports the latest exchange and full-thread sizes.
 Question-suffix, exact-range, and full-thread choices preview an editable context block before closing the side thread.
 Escape returns; Ctrl+C closes without bringing context back.
